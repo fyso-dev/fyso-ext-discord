@@ -1,3 +1,4 @@
+const {modes} = require('./identity.cjs');
 const fs = require('node:fs');
 const {execFileSync} = require('node:child_process');
 const {createRequire} = require('node:module');
@@ -13,10 +14,11 @@ function yamlModule() {
   }
 }
 
+const maxInstructions = 2000;
 const validChannel = id => typeof id === 'string' && /^[0-9]{17,20}$/.test(id);
 const validId = id => typeof id === 'string' && id.length > 0 &&
   !id.startsWith('-') && !/[\x00-\x20\x7f-\x9f]/.test(id);
-const empty = () => ({language: 'es', channels: new Map(), errors: []});
+const empty = () => ({language: 'es', channels: new Map(), withoutMention: new Set(), senderModes: new Map(), instructions: new Map(), errors: []});
 
 function parseConfig(text) {
   const config = empty();
@@ -42,8 +44,22 @@ function parseConfig(text) {
       config.errors.push(`Duplicate channel ${channel}`);
     } else {
       seen.add(channel);
-      if (validId(entry.bot)) config.channels.set(channel, entry.bot);
-      else config.errors.push(`Channel ${channel} needs a valid bot ID`);
+      if (!validId(entry.bot)) {
+        config.errors.push(`Channel ${channel} needs a valid bot ID`);
+        return;
+      }
+      config.channels.set(channel, entry.bot);
+      if (modes.has(entry.senderMode)) config.senderModes.set(channel, entry.senderMode);
+      else if (entry.senderMode !== undefined) config.errors.push(`Channel ${channel} has an invalid senderMode`);
+      if (typeof entry.instructions === 'string' && entry.instructions.trim().length <= maxInstructions) {
+        if (entry.instructions.trim()) config.instructions.set(channel, entry.instructions.trim());
+      } else if (entry.instructions !== undefined) {
+        config.errors.push(`Channel ${channel} instructions must be text up to ${maxInstructions} characters`);
+      }
+      if (entry.mentionRequired === false) config.withoutMention.add(channel);
+      else if (entry.mentionRequired !== undefined && entry.mentionRequired !== true) {
+        config.errors.push(`Channel ${channel} mentionRequired must be a boolean`);
+      }
     }
   });
   return config;
@@ -60,4 +76,4 @@ function loadConfig(path, previous = empty()) {
   }
 }
 
-module.exports = {parseConfig, loadConfig, validChannel, validId, yamlModule};
+module.exports = {parseConfig, loadConfig, validChannel, validId, yamlModule, maxInstructions};

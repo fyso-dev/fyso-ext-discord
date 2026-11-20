@@ -3,31 +3,29 @@ const path = require('node:path');
 const {loadConfig, validChannel, validId, yamlModule} = require('./lib/config.cjs');
 const {listBots} = require('./lib/omb.cjs');
 
-const permissions = 1024n | 2048n | 274877906944n | 34359738368n | 65536n;
+const {discordApi, inviteUrl, permissions} = require('./lib/discord.cjs');
+const {randomUUID} = require('node:crypto');
 const configPath = () => path.join(process.env.FYSO_ROOT || process.cwd(), 'project', 'discord.yaml');
 
 async function botAccount(token) {
-  if (!token) throw Error('DISCORD_BOT_TOKEN is missing');
-  let response;
-  try {
-    response = await fetch('https://discord.com/api/v10/users/@me', {
-      headers: {Authorization: 'Bot ' + token},
-      redirect: 'error',
-      signal: AbortSignal.timeout(10_000),
-    });
-  } catch {
-    throw Error('Could not reach the Discord API');
-  }
-  if (!response.ok) throw Error('Discord token check failed (HTTP ' + response.status + ')');
-  const account = await response.json().catch(() => null);
+  const account = await discordApi(token)('/users/@me');
   if (!account?.bot || !validChannel(account.id)) throw Error('Discord did not return a bot account');
   return account.id;
 }
 
-function addChannel(file, channel, bot) {
-  if (!validChannel(channel)) throw Error('Channel must be a 17–20 digit Discord ID');
-  if (!validId(bot)) throw Error('A valid OpenMausBot ID is required');
-  let source = '{}\n';
+function editConfig(file, edit) {
+  fs.mkdirSync(path.dirname(file), {recursive: true});
+  const lock = file + '.lock';
+  const fd = fs.openSync(lock, 'wx', 0o600);
+  try { return editLocked(file, edit); }
+  finally {
+    fs.closeSync(fd);
+    fs.unlinkSync(lock);
+  }
+}
+
+function editLocked(file, edit) {
+  let source = '';
   let stat;
   try {
     source = fs.readFileSync(file, 'utf8');
@@ -41,22 +39,55 @@ function addChannel(file, channel, bot) {
   if (doc.errors.length || (doc.contents && !yaml.isMap(doc.contents))) {
     throw Error('Fix project/discord.yaml before adding a channel');
   }
-  if (!doc.has('channels')) doc.set('channels', doc.createNode([]));
-  const channels = doc.get('channels', true);
-  if (!yaml.isSeq(channels)) throw Error('channels must be a list');
-  const existing = channels.items.find(item => yaml.isMap(item) && item.get('channel') === channel);
-  if (existing) existing.set('bot', bot);
-  else channels.add(doc.createNode({channel, bot}));
-  fs.mkdirSync(path.dirname(file), {recursive: true});
+  edit(doc, yaml);
   // Do not clobber another edit made while reading the document.
   if (stat && fs.readFileSync(file, 'utf8') !== source) throw Error('Discord configuration changed; retry');
-  fs.writeFileSync(file, String(doc), stat ? {} : {flag: 'wx'});
+  const temporary = file + '.' + randomUUID();
+  try {
+    fs.writeFileSync(temporary, String(doc), {flag: 'wx', mode: stat?.mode ?? 0o644});
+    fs.renameSync(temporary, file);
+  } finally {
+    fs.rmSync(temporary, {force: true});
+  }
+}
+
+function editChannel(file, channel, bot, {expected, previousMentionRequired, mentionRequired, senderMode, previousSenderMode, instructions} = {}) {
+  if (!validChannel(channel)) throw Error('Channel must be a 17–20 digit Discord ID');
+  if (bot !== null && !validId(bot)) throw Error('A valid OpenMausBot ID is required');
+  return editConfig(file, (doc, yaml) => {
+    if (!doc.has('channels')) doc.set('channels', doc.createNode([]));
+    const channels = doc.get('channels', true);
+    if (!yaml.isSeq(channels)) throw Error('channels must be a list');
+    const existing = channels.items.find(item => yaml.isMap(item) && item.get('channel') === channel);
+    const changedBot = expected !== undefined && (existing?.get('bot') ?? '') !== expected;
+    const currentMentionRequired = existing?.get('mentionRequired') !== false;
+    const changedTrigger = previousMentionRequired !== undefined && previousMentionRequired !== currentMentionRequired;
+    const changedSender = previousSenderMode !== undefined && (existing?.get('senderMode') ?? 'webhook') !== previousSenderMode;
+    if (changedBot || changedTrigger || changedSender) {
+      throw Object.assign(Error('Discord assignment changed; reload and retry'), {code: 'assignment_changed'});
+    }
+    if (bot === null) {
+      if (!existing) return;
+      channels.delete(channels.items.indexOf(existing));
+    } else {
+      const entry = existing ?? doc.createNode({channel, bot});
+      entry.set('bot', bot);
+      if (mentionRequired === false) entry.set('mentionRequired', false);
+      else if (mentionRequired === true && entry.has('mentionRequired')) entry.set('mentionRequired', true);
+      if (senderMode === 'card' || (senderMode === 'webhook' && entry.has('senderMode'))) entry.set('senderMode', senderMode);
+      if (typeof instructions === 'string') {
+        if (instructions.trim()) entry.set('instructions', instructions.trim());
+        else entry.delete('instructions');
+      }
+      if (!existing) channels.add(entry);
+    }
+  });
 }
 
 async function main([command, ...args]) {
   const file = configPath();
   if (command === 'add' && args.length === 2) {
-    addChannel(file, ...args);
+    editChannel(file, ...args);
     console.log('Commit project/discord.yaml');
     return;
   }
@@ -64,7 +95,7 @@ async function main([command, ...args]) {
   const token = process.env.DISCORD_BOT_TOKEN;
   if (command === 'invite' && !args.length) {
     const id = await botAccount(token);
-    console.log('https://discord.com/oauth2/authorize?client_id=' + id + '&scope=bot&permissions=' + permissions);
+    console.log(inviteUrl(id));
     return;
   }
   if (command !== 'check' || args.length) throw Error('Usage: tools.cjs check | invite | add <channel-id> <bot-id>');
@@ -97,4 +128,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = {addChannel, permissions};
+module.exports = {addChannel: editChannel, editChannel, configPath, permissions};

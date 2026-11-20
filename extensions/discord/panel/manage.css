@@ -1,0 +1,23 @@
+.discord-page { max-width: 56rem; margin: auto; padding: 1.5rem; display: grid; gap: 1rem; }
+.discord-page h1, .discord-page h2, .discord-page p { margin: 0; }
+.discord-page h1 { font-size: 1.75rem; }
+.discord-page h2 { font-size: 1.125rem; }
+.discord-page .card { padding: 1rem; }
+.discord-stack { display: grid; gap: .75rem; }
+.discord-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.discord-between { justify-content: space-between; }
+.discord-fields { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: .75rem; }
+.discord-fields label { display: grid; min-width: 0; gap: .35rem; }
+.discord-fields select { width: 100%; }
+.discord-list { list-style: none; margin: 0; padding: 0; }
+.discord-list li { padding: .75rem 0; border-top: 1px solid var(--fy-line); overflow-wrap: anywhere; }
+.discord-page select { padding: .45rem; background: var(--fy-surface-2); color: inherit; border: 1px solid var(--fy-line); border-radius: .4rem; }
+@media (max-width: 560px) {
+  .discord-page { padding: .75rem; }
+  .discord-fields { grid-template-columns: 1fr; }
+}
+.discord-choice { border: 0; margin: 0; padding: 0; gap: .4rem; }
+.discord-choice legend { padding: 0; margin-bottom: .35rem; }
+.discord-editor { padding: .75rem; border: 1px solid var(--fy-line); border-radius: .5rem; background: var(--fy-surface-2); }
+.discord-instructions textarea { width: 100%; padding: .45rem; background: var(--fy-surface); color: inherit; border: 1px solid var(--fy-line); border-radius: .4rem; font: inherit; resize: vertical; }
+.discord-quote { border-left: 3px solid var(--fy-line); padding-left: .6rem; white-space: pre-wrap; }

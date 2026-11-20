@@ -42,3 +42,16 @@ test('maps exit codes to status in both languages', () => {
   assert.equal(statusText('timeout', 'en'), "Still working; I'll leave it running.");
   assert.equal(statusText('failed', 'en'), 'Something failed; check the panel.');
 });
+
+test('starts on ordinary messages only in opted-in channels and ignores bots and unknown threads', () => {
+  const config = {
+    channels: new Map([['mention', 'support'], ['all', 'operator']]),
+    withoutMention: new Set(['all']),
+  };
+  const threads = new Map();
+  assert.deepEqual(route({channelId: 'mention'}, config, threads), {action: 'ignore'});
+  assert.deepEqual(route({channelId: 'all'}, config, threads), {action: 'start', botId: 'operator'});
+  assert.deepEqual(route({channelId: 'all', authorIsBot: true}, config, threads), {action: 'ignore'});
+  assert.deepEqual(route({channelId: 'all', isWebhook: true}, config, threads), {action: 'ignore'});
+  assert.deepEqual(route({channelId: 'all', threadId: 'unknown'}, config, threads), {action: 'ignore'});
+});

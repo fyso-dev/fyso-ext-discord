@@ -1,12 +1,10 @@
 title: {es: Conectar Discord, en: Connect Discord}
 description:
   es: >-
-    Creá una aplicación y un bot en el Portal de Desarrolladores de Discord.
-    Activá Message Content Intent en la sección Bot.
-    Pegá el token acá y usá mise run discord:invite para invitar al bot al servidor.
-    Habilitá cada canal con mise run discord:add <channel-id> <bot-id>.
+    En el Portal de Desarrolladores de Discord, creá una aplicación. En la sección Bot,
+    copiá el token (Reset Token) y activá «Message Content Intent». Pegá el token acá.
+    Después abrí la página Discord del panel para invitar el bot y elegir los canales.
   en: >-
-    Create an application and bot in the Discord Developer Portal.
-    Enable Message Content Intent in the Bot section.
-    Paste the token here and use mise run discord:invite to invite the bot to your server.
-    Enable each channel with mise run discord:add <channel-id> <bot-id>.
+    In the Discord Developer Portal, create an application. In the Bot section, copy the
+    token (Reset Token) and turn on “Message Content Intent”. Paste the token here.
+    Then open the panel's Discord page to invite the bot and choose the channels.

@@ -44,27 +44,73 @@ async function runAgent({botId, taskId, text, port, bin = 'openmausbot'}) {
   ], {text, timeout: 31 * 60_000});
   const result = {exitCode};
   if (validId(value?.threadId)) result.threadId = value.threadId;
+  if (Number.isSafeInteger(value?.since) && value.since > 0) result.since = value.since;
   if (typeof value?.reply?.text === 'string') result.reply = {text: value.reply.text};
   return result;
 }
 
-async function isIdle({taskId, port, bin = 'openmausbot'}) {
+async function waitForTurn({taskId, port, since, bin = 'openmausbot'}) {
   requireId(taskId);
+  if (since !== undefined && (!Number.isSafeInteger(since) || since <= 0)) throw Error('Invalid turn timestamp');
   const {exitCode, value} = await invoke(bin, [
     'wait', '--thread', taskId, '--port', projectPort(port), '--json',
     '--timeout', '5s', '--on-input', 'exit', '--on-timeout', 'leave',
+    ...(since === undefined ? [] : ['--since', String(since)]),
   ], {timeout: 15_000});
   // A native engine failure can settle the job with exit 1. CLI errors have no job.
   const settledFailure = exitCode === 1 && ['failed', 'stalled'].includes(value?.state) &&
     ['idle', 'completed', 'failed'].includes(value?.job?.state);
-  return exitCode === 0 || settledFailure;
+  return {idle: exitCode === 0 || settledFailure, exitCode, messages: value?.messages};
 }
 
-async function listBots({port, bin = 'openmausbot'}) {
-  const {exitCode, value} = await invoke(bin, ['bots', '--json', '--port', projectPort(port)],
-    {timeout: 15_000});
-  if (exitCode || !Array.isArray(value?.bots)) throw Error('Could not list project agents');
-  return new Set(value.bots.map(bot => bot.id));
+async function isIdle(options) {
+  return (await waitForTurn(options)).idle;
 }
 
-module.exports = {projectPort, runAgent, isIdle, listBots};
+async function botRoster({port, fetcher = fetch}) {
+  const response = await fetcher('http://127.0.0.1:' + projectPort(port) + '/api/bots?messages=0', {
+    redirect: 'error', signal: AbortSignal.timeout(5000),
+  });
+  if (!response.ok) throw Error('Could not list project agents');
+  const {bots} = await response.json();
+  if (!Array.isArray(bots)) throw Error('Could not list project agents');
+  return bots.map(({id, name, color, avatarUrl, mascotBody, mascotFaceColor}) => ({
+    id, name, color, avatarUrl, mascotBody, mascotFaceColor,
+  }));
+}
+
+const avatarPath = /^\/api\/attachments\/[A-Za-z0-9-]+\.(png|jpg|gif|webp)$/;
+const avatarMime = new Map([['png', 'image/png'], ['jpg', 'image/jpeg'], ['gif', 'image/gif'], ['webp', 'image/webp']]);
+const avatarLimit = 1024 * 1024;
+
+async function botAvatar({port, url, fetcher = fetch}) {
+  const match = typeof url === 'string' && url.match(avatarPath);
+  if (!match) return undefined;
+  const response = await fetcher('http://127.0.0.1:' + projectPort(port) + url, {
+    redirect: 'error', signal: AbortSignal.timeout(5000),
+  });
+  if (!response.ok || !response.body ||
+      response.headers.get('content-type')?.split(';')[0] !== avatarMime.get(match[1]) ||
+      Number(response.headers.get('content-length')) > avatarLimit) return undefined;
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > avatarLimit) {
+      await reader.cancel();
+      return undefined;
+    }
+    chunks.push(value);
+  }
+  if (!total) return undefined;
+  return {bytes: Buffer.concat(chunks, total), filename: 'agent-avatar.' + match[1]};
+}
+
+async function listBots(options) {
+  return new Set((await botRoster(options)).map(bot => bot.id));
+}
+
+module.exports = {projectPort, runAgent, isIdle, waitForTurn, listBots, botRoster, botAvatar};

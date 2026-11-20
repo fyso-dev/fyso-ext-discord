@@ -1,0 +1,87 @@
+{
+  "discord": {
+    "title": "Discord",
+    "refresh": "Volver a comprobar",
+    "loading": "Comprobando Discord…",
+    "saved": "Canal guardado.",
+    "removed": "Canal quitado.",
+    "bot": {
+      "title": "1. Bot de Discord",
+      "tokenMissing": "Todavía no cargaste el token del bot. Crealo en el Portal de Discord (Bot → Reset Token) y pegalo en Setup.",
+      "tokenInvalid": "Discord rechazó el token. Generá uno nuevo en el Portal de Discord y actualizalo en Setup.",
+      "openSetup": "Cargar el token",
+      "openPortal": "Abrir el Portal de Discord",
+      "intent": "Falta un paso en el Portal de Discord: en la sección Bot, activá «Message Content Intent» y guardá. Después pulsá Volver a comprobar.",
+      "connected": "Conectado como {{name}}.",
+      "connecting": "El bot se está conectando. Volvé a comprobar en unos segundos.",
+      "invite": "Invitar el bot a un servidor",
+      "inviteMore": "Invitar a otro servidor",
+      "inviteHelp": "El bot todavía no ve ningún canal. Invitalo a tu servidor y después pulsá Volver a comprobar."
+    },
+    "channels": {
+      "title": "2. Canales",
+      "help": "Elegí qué agente responde en cada canal. Responde en un hilo, con su nombre y su avatar, y recuerda la conversación de ese hilo.",
+      "needsBot": "Primero conectá el bot.",
+      "empty": "Todavía no hay canales.",
+      "noVisible": "El bot no ve ningún canal. Invitalo a un servidor o dale acceso al canal en Discord.",
+      "add": "Agregar canal",
+      "edit": "Cambiar",
+      "remove": "Quitar",
+      "confirmRemove": "¿Dejar de responder en este canal?",
+      "ok": "Funcionando",
+      "attention": "Revisar",
+      "summary": "Responde {{agent}} {{when}}.",
+      "onMention": "cuando lo mencionan",
+      "onEvery": "a cada mensaje nuevo",
+      "openInDiscord": "Abrir en Discord"
+    },
+    "form": {
+      "channel": "Canal",
+      "agent": "Agente",
+      "chooseChannel": "Elegí un canal",
+      "chooseAgent": "Elegí un agente",
+      "when": "¿Cuándo responde?",
+      "onMention": "Cuando alguien menciona al bot (@)",
+      "onEvery": "A cada mensaje nuevo del canal",
+      "noFreeChannels": "Todos los canales que ve el bot ya tienen un agente.",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "instructions": "Instrucciones para este canal (opcional)",
+      "instructionsExample": "Ej.: Es el canal de soporte a clientes. Respondé con tono formal y derivá facturación a #admin.",
+      "instructionsHelp": "El agente las recibe al empezar cada hilo nuevo. Si las cambiás, valen para los hilos nuevos."
+    },
+    "problems": {
+      "noAccess": "El bot no puede ver este canal. Dale acceso en Discord (Editar canal → Permisos).",
+      "unknownAgent": "Este agente ya no existe en el proyecto. Elegí otro.",
+      "permissions": "Al bot le falta en este canal: {{permissions}}. Concedelo en Discord (Editar canal → Permisos)."
+    },
+    "permissions": {
+      "view": "ver el canal",
+      "send": "enviar mensajes",
+      "send_threads": "enviar mensajes en hilos",
+      "create_threads": "crear hilos públicos",
+      "history": "leer el historial",
+      "embed_links": "insertar enlaces",
+      "attach_files": "adjuntar archivos"
+    },
+    "states": {
+      "connected": "Conectado",
+      "connecting": "Conectando",
+      "offline": "Desconectado",
+      "intent_disabled": "Falta un paso",
+      "token_missing": "Sin token"
+    },
+    "errors": {
+      "unreachable": "No se pudo consultar Discord. Volvé a comprobar.",
+      "rate_limited": "Discord pidió que esperemos. Probá de nuevo en unos segundos.",
+      "missing_access": "El bot no puede acceder a este canal.",
+      "missing_channel": "El canal ya no existe en Discord.",
+      "unsupported_channel": "Elegí un canal de texto o de anuncios.",
+      "invalid_input": "Elegí un canal y un agente.",
+      "assignment_changed": "Alguien cambió este canal mientras tanto. Volvé a comprobar y probá de nuevo.",
+      "unknown_agent": "Ese agente ya no existe en el proyecto.",
+      "invalid_config": "El archivo project/discord.yaml tiene un error. Corregilo para poder editar los canales desde acá.",
+      "operation_failed": "No se pudo completar. Volvé a comprobar."
+    }
+  }
+}

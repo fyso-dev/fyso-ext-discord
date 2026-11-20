@@ -2,7 +2,8 @@ function route(msg, config, threads) {
   if (msg.authorIsBot || msg.isWebhook) return {action: 'ignore'};
   if (!msg.threadId) {
     const botId = config.channels.get(msg.channelId);
-    return botId && msg.mentionsMe ? {action: 'start', botId} : {action: 'ignore'};
+    const triggered = msg.mentionsMe || config.withoutMention?.has(msg.channelId);
+    return botId && triggered ? {action: 'start', botId} : {action: 'ignore'};
   }
 
   const entry = threads.get(msg.threadId);
@@ -16,11 +17,17 @@ function route(msg, config, threads) {
 
 const statuses = {
   es: {
+    typing: 'Escribiendo…',
+    attachmentOnly: 'Te envío estos archivos.',
+    attachmentRejected: 'No pude recibir uno o más adjuntos. Podés enviar hasta 5 archivos, con 10 MB por imagen y 25 MB en total. Revisá el formato y volvé a intentar.',
     needsInput: 'El agente está esperando una respuesta en el panel.',
     timeout: 'Sigue trabajando; lo dejo corriendo.',
     failed: 'Algo falló; revisá el panel.',
   },
   en: {
+    typing: 'Typing…',
+    attachmentOnly: 'I am sending these files.',
+    attachmentRejected: 'I could not receive one or more attachments. You can send up to 5 files, with 10 MB per image and 25 MB in total. Check the format and try again.',
     needsInput: 'The agent is waiting for an answer in the panel.',
     timeout: "Still working; I'll leave it running.",
     failed: 'Something failed; check the panel.',
