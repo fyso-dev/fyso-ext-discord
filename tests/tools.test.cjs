@@ -8,7 +8,7 @@ const {addChannel, permissions} = require('../extensions/discord/tools.cjs');
 const {loadConfig} = require('../extensions/discord/lib/config.cjs');
 const tools = path.resolve(__dirname, '../extensions/discord/tools.cjs');
 
-test('computes invite permissions', () => assert.equal(permissions, 309237713920n));
+test('computes invite permissions', () => assert.equal(permissions, 309774633984n));
 
 test('adds and updates channels while keeping comments', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'discord-tools-'));

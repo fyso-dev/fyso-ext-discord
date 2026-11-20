@@ -1,5 +1,10 @@
-# Enable Developer Mode in Discord, then right-click the channel and copy its ID.
-language: es
+# Which project agent answers in which Discord channel.
+# Easiest: edit this from the panel's Discord page. By hand: Discord → User settings →
+# Advanced → Developer Mode, then right-click the channel → Copy Channel ID.
+language: es                   # optional: es (default) | en, for the bridge's short status messages
 channels:
   - channel: "123456789012345678"
-    bot: support
+    bot: support               # exact agent id (mise run bots:architect or the panel)
+    mentionRequired: true      # false = answer every new message, not only @mentions
+    instructions: Customer support channel. Answer formally.   # optional, new threads
+    # senderMode: card         # optional: card instead of posting as the agent itself

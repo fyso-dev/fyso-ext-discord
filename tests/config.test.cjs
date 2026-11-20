@@ -37,3 +37,18 @@ test('invalid yaml keeps previous', t => {
   assert.deepEqual(next.channels, previous.channels);
   assert.equal(next.errors.length, 1);
 });
+
+test('only an explicit false flag enables starting without a mention', () => {
+  assert.equal(parseConfig(config).withoutMention.has(id), false);
+  assert.equal(parseConfig(config + '    mentionRequired: false\n').withoutMention.has(id), true);
+  const invalid = parseConfig(config + '    mentionRequired: "false"\n');
+  assert.equal(invalid.withoutMention.has(id), false);
+  assert.equal(invalid.errors.length, 1);
+});
+
+test('reads optional channel instructions and rejects invalid ones', () => {
+  assert.equal(parseConfig(config).instructions.has(id), false);
+  assert.equal(parseConfig(config + '    instructions: "Formal tone"\n').instructions.get(id), 'Formal tone');
+  assert.equal(parseConfig(config + '    instructions: 3\n').errors.length, 1);
+  assert.equal(parseConfig(config + '    instructions: "' + 'x'.repeat(2001) + '"\n').errors.length, 1);
+});

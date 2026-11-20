@@ -1,0 +1,87 @@
+{
+  "discord": {
+    "title": "Discord",
+    "refresh": "Check again",
+    "loading": "Checking Discord…",
+    "saved": "Channel saved.",
+    "removed": "Channel removed.",
+    "bot": {
+      "title": "1. Discord bot",
+      "tokenMissing": "The bot token is not set yet. Create it in the Discord Developer Portal (Bot → Reset Token) and paste it in Setup.",
+      "tokenInvalid": "Discord rejected the token. Create a new one in the Developer Portal and update it in Setup.",
+      "openSetup": "Set the token",
+      "openPortal": "Open the Developer Portal",
+      "intent": "One step is missing in the Developer Portal: in the Bot section, turn on “Message Content Intent” and save. Then press Check again.",
+      "connected": "Connected as {{name}}.",
+      "connecting": "The bot is connecting. Check again in a few seconds.",
+      "invite": "Invite the bot to a server",
+      "inviteMore": "Invite to another server",
+      "inviteHelp": "The bot cannot see any channel yet. Invite it to your server, then press Check again."
+    },
+    "channels": {
+      "title": "2. Channels",
+      "help": "Choose which agent answers in each channel. It answers in a thread, with its own name and avatar, and remembers that thread's conversation.",
+      "needsBot": "Connect the bot first.",
+      "empty": "No channels yet.",
+      "noVisible": "The bot cannot see any channel. Invite it to a server or give it access to the channel in Discord.",
+      "add": "Add channel",
+      "edit": "Change",
+      "remove": "Remove",
+      "confirmRemove": "Stop answering in this channel?",
+      "ok": "Working",
+      "attention": "Check",
+      "summary": "{{agent}} answers {{when}}.",
+      "onMention": "when mentioned",
+      "onEvery": "every new message",
+      "openInDiscord": "Open in Discord"
+    },
+    "form": {
+      "channel": "Channel",
+      "agent": "Agent",
+      "chooseChannel": "Choose a channel",
+      "chooseAgent": "Choose an agent",
+      "when": "When does it answer?",
+      "onMention": "When someone mentions the bot (@)",
+      "onEvery": "Every new message in the channel",
+      "noFreeChannels": "Every channel the bot can see already has an agent.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "instructions": "Instructions for this channel (optional)",
+      "instructionsExample": "E.g.: This is the customer support channel. Answer formally and send billing questions to #admin.",
+      "instructionsHelp": "The agent gets them when each new thread starts. Changes apply to new threads."
+    },
+    "problems": {
+      "noAccess": "The bot cannot see this channel. Give it access in Discord (Edit channel → Permissions).",
+      "unknownAgent": "This agent no longer exists in the project. Choose another one.",
+      "permissions": "In this channel the bot is missing: {{permissions}}. Grant it in Discord (Edit channel → Permissions)."
+    },
+    "permissions": {
+      "view": "view channel",
+      "send": "send messages",
+      "send_threads": "send messages in threads",
+      "create_threads": "create public threads",
+      "history": "read message history",
+      "embed_links": "embed links",
+      "attach_files": "attach files"
+    },
+    "states": {
+      "connected": "Connected",
+      "connecting": "Connecting",
+      "offline": "Disconnected",
+      "intent_disabled": "One step missing",
+      "token_missing": "No token"
+    },
+    "errors": {
+      "unreachable": "Discord could not be reached. Check again.",
+      "rate_limited": "Discord asked us to wait. Try again in a few seconds.",
+      "missing_access": "The bot cannot access this channel.",
+      "missing_channel": "The channel no longer exists in Discord.",
+      "unsupported_channel": "Choose a text or announcement channel.",
+      "invalid_input": "Choose a channel and an agent.",
+      "assignment_changed": "Someone changed this channel meanwhile. Check again and retry.",
+      "unknown_agent": "That agent no longer exists in the project.",
+      "invalid_config": "project/discord.yaml has an error. Fix it to edit channels here.",
+      "operation_failed": "That did not work. Check again."
+    }
+  }
+}
