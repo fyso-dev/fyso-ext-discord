@@ -1,0 +1,11 @@
+[tasks."discord:check"]
+description = "Check Discord token and channel configuration"
+run = "framework/scripts/run-ext.sh discord -- bash extensions/discord/doctor.sh"
+
+[tasks."discord:invite"]
+description = "Print the Discord OAuth2 invite URL"
+run = "framework/scripts/run-ext.sh discord -- bash extensions/discord/runtime.sh tools.cjs invite"
+
+[tasks."discord:add"]
+description = "Enable a Discord channel: discord:add <channel-id> <bot-id>"
+run = "bash extensions/discord/runtime.sh tools.cjs add"

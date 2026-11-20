@@ -1,0 +1,5 @@
+# Enable Developer Mode in Discord, then right-click the channel and copy its ID.
+language: es
+channels:
+  - channel: "123456789012345678"
+    bot: support

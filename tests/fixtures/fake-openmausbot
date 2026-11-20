@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+const fs = require('node:fs');
+const text = fs.readFileSync(0, 'utf8');
+if (process.env.DISCORD_BOT_TOKEN || process.env.OPENMAUSBOT_URL) process.exit(9);
+if (process.env.FAKE_OMB_INVALID) {
+  console.log('invalid output');
+  process.exit(0);
+}
+console.log(JSON.stringify({
+  threadId: 'task-id',
+  state: process.env.FAKE_OMB_STATE,
+  job: {state: process.env.FAKE_OMB_JOB},
+  reply: {text: JSON.stringify({argv: process.argv.slice(2), text})},
+}));
+process.exitCode = Number(process.env.FAKE_OMB_EXIT ?? 0);
