@@ -11,12 +11,14 @@ class DiscordError extends Error {
 }
 
 function discordApi(token, fetcher = fetch) {
-  return async path => {
+  return async (path, body) => {
     if (!token) throw new DiscordError('token_missing', 'DISCORD_BOT_TOKEN is missing');
     let response;
     try {
       response = await fetcher('https://discord.com/api/v10' + path, {
-        headers: {Authorization: 'Bot ' + token},
+        method: body === undefined ? 'GET' : 'POST',
+        headers: {Authorization: 'Bot ' + token, ...(body === undefined ? {} : {'Content-Type': 'application/json'})},
+        body: body === undefined ? undefined : JSON.stringify(body),
         redirect: 'error',
         signal: AbortSignal.timeout(10_000),
       });

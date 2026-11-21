@@ -9,3 +9,7 @@ run = "framework/scripts/run-ext.sh discord -- bash extensions/discord/runtime.s
 [tasks."discord:add"]
 description = "Enable a Discord channel: discord:add <channel-id> <bot-id>"
 run = "bash extensions/discord/runtime.sh tools.cjs add"
+
+[tasks."discord:send"]
+description = "Post a new message to a configured Discord channel"
+run = "framework/scripts/run-ext.sh discord -- bash extensions/discord/runtime.sh tools.cjs send"

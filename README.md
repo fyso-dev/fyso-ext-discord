@@ -61,6 +61,11 @@ Agent identity                  Card
 Choose "when mentioned" for shared channels and "every new message" for a channel
 dedicated to the agent. Replies inside a thread keep its conversation.
 
+To start a conversation in an assigned channel, the agent can run
+`mise run discord:send -- <channel-id> "Message text"` from the project root.
+It posts as the Discord bot and returns the new message ID. Each message can
+contain up to 2,000 characters.
+
 ## Instructions for the agent
 
 - **Per channel:** the channel form has an optional *Instructions* field (up to

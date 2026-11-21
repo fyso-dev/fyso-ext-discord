@@ -1,7 +1,16 @@
 ---
 name: discord
-description: Write replies that read well in Discord, when this agent answers in a Discord channel or thread through the Fyso Discord extension
+description: Send new messages to assigned Discord channels and answer Discord conversations
 ---
+# Sending a new message
+
+From the project root, find the channel assigned to your agent in
+`project/discord.yaml` and follow its instructions. When asked to publish there,
+run `mise run discord:send -- <channel-id> <message>` with the message as one
+safely quoted argument. This posts a top-level message as the Discord bot.
+Report success after the command returns a Discord message ID. If delivery is
+uncertain, check the channel before retrying.
+
 # Answering in Discord
 
 Some of your conversations come from Discord. You will recognize them: each
@@ -24,4 +33,3 @@ Several people can write in the same thread. Address them by name when it helps.
 
 - Do not mention `@everyone`, `@here`, roles or people: mentions are disabled anyway.
 - Do not paste secrets, tokens or personal data; the channel may have many readers.
-- Do not promise to post later on your own: you can only answer when someone writes.
