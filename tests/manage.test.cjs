@@ -14,7 +14,7 @@ const botId = '100000000000000004';
 const roles = [{id: guild, permissions: String(permissions)}];
 const member = {roles: []};
 const overwrite = {id: guild, type: 0, allow: '0', deny: '1024'};
-const channels = [{id, type: 0, name: 'test'}, {id: hidden, type: 0, name: 'hidden', permission_overwrites: [overwrite]}];
+const channels = [{id, guild_id: guild, type: 0, name: 'test'}, {id: hidden, type: 0, name: 'hidden', permission_overwrites: [overwrite]}];
 
 function fixture(t) {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'discord-panel-'));
@@ -110,4 +110,14 @@ test('saves, reports and clears channel instructions', async t => {
   assert.equal((await manage({op: 'status'}, context)).assignments[0].instructions, '');
   assert.equal(fs.readFileSync(context.file, 'utf8').includes('instructions'), false);
   assert.deepEqual(await manage({...input, previous: 'support', instructions: 'x'.repeat(2001)}, context), {error: 'invalid_input'});
+});
+
+test('enables outbound posting without an available OMB roster', async t => {
+  const context = fixture(t);
+  context.roster = async () => { throw Error('offline'); };
+  assert.deepEqual(await manage({op: 'set', channel: id, bot: '', previous: '', previousPresent: false}, context), {saved: true});
+  const result = await manage({op: 'status'}, context);
+  assert.equal(result.assignments[0].bot, '');
+  assert.deepEqual(result.bots, []);
+  assert.equal(result.configError, false);
 });

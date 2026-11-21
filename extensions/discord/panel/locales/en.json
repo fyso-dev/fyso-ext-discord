@@ -6,9 +6,10 @@
     "saved": "Channel saved.",
     "removed": "Channel removed.",
     "bot": {
+      "token": "Discord bot token",
       "title": "1. Discord bot",
-      "tokenMissing": "The bot token is not set yet. Create it in the Discord Developer Portal (Bot → Reset Token) and paste it in Setup.",
-      "tokenInvalid": "Discord rejected the token. Create a new one in the Developer Portal and update it in Setup.",
+      "tokenMissing": "Create a Discord application. Under Bot, enable Message Content Intent and copy the token.",
+      "tokenInvalid": "Discord rejected the token. Generate a new token and paste it here.",
       "openSetup": "Set the token",
       "openPortal": "Open the Developer Portal",
       "intent": "One step is missing in the Developer Portal: in the Bot section, turn on “Message Content Intent” and save. Then press Check again.",
@@ -19,8 +20,9 @@
       "inviteHelp": "The bot cannot see any channel yet. Invite it to your server, then press Check again."
     },
     "channels": {
+      "outbound": "Enabled for posting.",
       "title": "2. Channels",
-      "help": "Choose which agent answers in each channel. It answers in a thread, with its own name and avatar, and remembers that thread's conversation.",
+      "help": "Choose a channel for posting. Assign an agent to enable conversations in threads.",
       "needsBot": "Connect the bot first.",
       "empty": "No channels yet.",
       "noVisible": "The bot cannot see any channel. Invite it to a server or give it access to the channel in Discord.",
@@ -39,7 +41,7 @@
       "channel": "Channel",
       "agent": "Agent",
       "chooseChannel": "Choose a channel",
-      "chooseAgent": "Choose an agent",
+      "chooseAgent": "Send only (no agent)",
       "when": "When does it answer?",
       "onMention": "When someone mentions the bot (@)",
       "onEvery": "Every new message in the channel",

@@ -6,9 +6,10 @@
     "saved": "Canal guardado.",
     "removed": "Canal quitado.",
     "bot": {
+      "token": "Token del bot de Discord",
       "title": "1. Bot de Discord",
-      "tokenMissing": "Todavía no cargaste el token del bot. Crealo en el Portal de Discord (Bot → Reset Token) y pegalo en Setup.",
-      "tokenInvalid": "Discord rechazó el token. Generá uno nuevo en el Portal de Discord y actualizalo en Setup.",
+      "tokenMissing": "Creá una aplicación en Discord. En Bot, activá Message Content Intent y copiá el token.",
+      "tokenInvalid": "Discord rechazó el token. Generá uno nuevo y pegalo acá.",
       "openSetup": "Cargar el token",
       "openPortal": "Abrir el Portal de Discord",
       "intent": "Falta un paso en el Portal de Discord: en la sección Bot, activá «Message Content Intent» y guardá. Después pulsá Volver a comprobar.",
@@ -19,8 +20,9 @@
       "inviteHelp": "El bot todavía no ve ningún canal. Invitalo a tu servidor y después pulsá Volver a comprobar."
     },
     "channels": {
+      "outbound": "Habilitado para publicar.",
       "title": "2. Canales",
-      "help": "Elegí qué agente responde en cada canal. Responde en un hilo, con su nombre y su avatar, y recuerda la conversación de ese hilo.",
+      "help": "Elegí un canal para publicar. Para conversar en hilos, asignale un agente.",
       "needsBot": "Primero conectá el bot.",
       "empty": "Todavía no hay canales.",
       "noVisible": "El bot no ve ningún canal. Invitalo a un servidor o dale acceso al canal en Discord.",
@@ -39,7 +41,7 @@
       "channel": "Canal",
       "agent": "Agente",
       "chooseChannel": "Elegí un canal",
-      "chooseAgent": "Elegí un agente",
+      "chooseAgent": "Solo publicar (sin agente)",
       "when": "¿Cuándo responde?",
       "onMention": "Cuando alguien menciona al bot (@)",
       "onEvery": "A cada mensaje nuevo del canal",

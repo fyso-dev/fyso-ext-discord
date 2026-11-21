@@ -9,7 +9,7 @@ const encode = value => btoa(String.fromCharCode(...new TextEncoder().encode(JSO
 const portal = 'https://discord.com/developers/applications';
 const tokenErrors = new Set(['token_missing', 'token_invalid']);
 
-// Two steps: connect the Discord bot, then choose which agent answers in which channel.
+// Connect Discord, then enable channels and optional agent replies.
 // Identity and permissions are automatic and only surface when something needs a fix.
 function DiscordPage() {
   const {t} = useTranslation();
@@ -18,6 +18,7 @@ function DiscordPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(true);
+  const [token, setToken] = useState('');
   const [notice, setNotice] = useState('');
   const [form, setForm] = useState(null); // {channel, bot, mentionRequired, instructions, editing}
   const [removing, setRemoving] = useState('');
@@ -27,6 +28,21 @@ function DiscordPage() {
     const result = await action.start({REQUEST_B64: encode({op: 'status'})});
     if (!result || result.error) { setError(result?.error || 'operation_failed'); setData(null); }
     else setData(result);
+  }
+
+  async function connect(event) {
+    event.preventDefault();
+    if (!token.trim() || busy) return;
+    setBusy(true); setError(''); setToken('');
+    try {
+      const response = await fetch('/api/extensions/discord/secrets', {
+        method: 'POST', credentials: 'same-origin', cache: 'no-store',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({values: {DISCORD_BOT_TOKEN: token.trim()}}),
+      });
+      if (!response.ok) throw Error();
+      await reload();
+    } catch { setError('operation_failed'); } finally { setBusy(false); }
   }
 
   async function refresh() {
@@ -42,7 +58,7 @@ function DiscordPage() {
       const current = data.assignments.find(item => item.channel === channel);
       const result = await action.start({REQUEST_B64: encode({
         op, channel, bot: values.bot ?? '', mentionRequired: values.mentionRequired, instructions: values.instructions,
-        previous: current?.bot ?? '', previousMentionRequired: current?.mentionRequired ?? true,
+        previousPresent: Boolean(current), previous: current?.bot ?? '', previousMentionRequired: current?.mentionRequired ?? true,
       })});
       if (!result?.saved) { setError(result?.error || 'operation_failed'); return; }
       setNotice(op === 'remove' ? 'removed' : 'saved');
@@ -74,8 +90,11 @@ function DiscordPage() {
     if (connection === 'token_missing') {
       body = [h('p', {key: 'p'}, i(error === 'token_invalid' ? 'bot.tokenInvalid' : 'bot.tokenMissing')),
         h('div', {key: 'a', className: 'discord-row'},
-          h('a', {href: '/#/', target: '_top', className: 'btn btn-sm btn-pri'}, i('bot.openSetup')),
-          link(portal, 'bot.openPortal'))];
+          link(portal, 'bot.openPortal')),
+        h('form', {key: 'token', onSubmit: connect, className: 'discord-row'},
+          h('label', null, i('bot.token'), h('input', {type: 'password', autoComplete: 'new-password',
+            value: token, maxLength: 4096, disabled: busy, onChange: event => setToken(event.target.value)})),
+          h('button', {type: 'submit', className: 'btn btn-sm btn-pri', disabled: busy || !token.trim()}, i('bot.openSetup')))];
     } else if (connection === 'intent_disabled') {
       body = [h('p', {key: 'p'}, i('bot.intent')),
         h('div', {key: 'a', className: 'discord-row'}, link(portal, 'bot.openPortal', 'pri'))];
@@ -98,9 +117,10 @@ function DiscordPage() {
   function problem(item) {
     const detail = detailOf.get(item.channel);
     if (!detail || detail.missing.includes('view')) return i('problems.noAccess');
-    if (!agentName.has(item.bot)) return i('problems.unknownAgent');
-    if (detail.missing.length) return i('problems.permissions', {
-      permissions: detail.missing.map(key => i('permissions.' + key)).join(', '),
+    if (item.bot && !agentName.has(item.bot)) return i('problems.unknownAgent');
+    const missing = detail.missing.filter(key => item.bot || key === 'view' || key === 'send');
+    if (missing.length) return i('problems.permissions', {
+      permissions: missing.map(key => i('permissions.' + key)).join(', '),
     });
     return null;
   }
@@ -123,27 +143,27 @@ function DiscordPage() {
         !form.editing && h('option', {value: ''}, i('form.chooseChannel')),
         options.map(item => h('option', {value: item.id, key: item.id}, channelLabel(item))))),
       h('label', null, i('form.agent'),
-        h('select', {value: form.bot, required: true, disabled: locked, onChange: event => set({bot: event.target.value})},
+        h('select', {value: form.bot, disabled: locked, onChange: event => set({bot: event.target.value})},
           h('option', {value: ''}, i('form.chooseAgent')),
           data.bots.map(item => h('option', {value: item.id, key: item.id}, item.name))))),
-    h('fieldset', {className: 'discord-stack discord-choice'},
+    form.bot && h('fieldset', {className: 'discord-stack discord-choice'},
       h('legend', null, i('form.when')),
       choice(true, 'form.onMention'),
       choice(false, 'form.onEvery')),
-    h('label', {className: 'discord-stack discord-instructions'}, i('form.instructions'),
+    form.bot && h('label', {className: 'discord-stack discord-instructions'}, i('form.instructions'),
       h('textarea', {value: form.instructions, rows: 3, maxLength: 2000, disabled: locked,
         placeholder: i('form.instructionsExample'), onChange: event => set({instructions: event.target.value})}),
       h('span', {className: 'hint'}, i('form.instructionsHelp'))),
     !form.editing && !options.length && h('p', {className: 'hint'}, i('form.noFreeChannels')),
     h('div', {className: 'discord-row'},
       h('button', {type: 'submit', className: 'btn btn-sm btn-pri',
-        disabled: locked || !form.channel || !agentName.has(form.bot)}, i('form.save')),
+        disabled: locked || !form.channel || (form.bot && !agentName.has(form.bot))}, i('form.save')),
       btn('form.cancel', () => setForm(null))));
   }
 
   // Step 2: which agent answers in which channel.
   function channelStep() {
-    const usable = Boolean(data);
+    const usable = Array.isArray(data?.assignments);
     return h('section', {className: 'card discord-stack', 'aria-labelledby': 'discord-channels'},
       h('h2', {id: 'discord-channels'}, i('channels.title')),
       h('p', {className: 'hint'}, i('channels.help')),
@@ -158,11 +178,11 @@ function DiscordPage() {
           h('div', {className: 'discord-row discord-between'},
             h('strong', null, detail ? channelLabel(detail) : item.channel),
             pill(issue ? i('channels.attention') : i('channels.ok'), !issue)),
-          h('p', null, i('channels.summary', {
+          h('p', null, item.bot ? i('channels.summary',  {
             agent: agentName.get(item.bot) ?? item.bot,
             when: i(item.mentionRequired ? 'channels.onMention' : 'channels.onEvery'),
-          })),
-          item.instructions && h('p', {className: 'hint discord-quote'}, item.instructions),
+          }) : i('channels.outbound')),
+          item.bot && item.instructions && h('p', {className: 'hint discord-quote'}, item.instructions),
           issue && h('p', {className: 'hint'}, issue),
           removing === item.channel
             ? h('div', {className: 'discord-row'}, h('span', null, i('channels.confirmRemove')),

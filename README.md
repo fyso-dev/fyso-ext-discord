@@ -15,10 +15,8 @@ mise run ext:add <path-to-fyso-ext-discord> -- --vcs-ref HEAD
 ```
 
 1. In the [Discord Developer Portal](https://discord.com/developers/applications), create an application. In its **Bot** section copy the token and turn on **Message Content Intent**.
-2. Paste the token in **Setup → Connect Discord** in the Fyso panel.
-3. Open the panel's **Discord** page. Step 1 shows the bot's state and one
-   invite button; step 2 is where you choose which agent answers in which channel
-   and whether it answers only when mentioned or every new message.
+2. Open **Discord** in the project panel and paste the token. The panel sends it directly to the framework's encrypted secret store. The token stays out of Dagu workflow inputs and outputs.
+3. Follow the invitation to authorize the bot in Discord. Return to the panel, refresh and choose a channel. Leave the agent selector on **Send only** for outbound posts, or choose an agent to enable conversations. The management workflow checks channel permissions before saving.
 4. Commit `project/discord.yaml` (the page writes it).
 
 Terminal equivalents: `mise run discord:invite`, `mise run discord:add <channel-id> <bot-id>`,
