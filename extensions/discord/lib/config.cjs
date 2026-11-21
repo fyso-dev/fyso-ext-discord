@@ -44,11 +44,11 @@ function parseConfig(text) {
       config.errors.push(`Duplicate channel ${channel}`);
     } else {
       seen.add(channel);
-      if (!validId(entry.bot)) {
+      if (entry.bot !== undefined && !validId(entry.bot)) {
         config.errors.push(`Channel ${channel} needs a valid bot ID`);
         return;
       }
-      config.channels.set(channel, entry.bot);
+      config.channels.set(channel, entry.bot ?? '');
       if (modes.has(entry.senderMode)) config.senderModes.set(channel, entry.senderMode);
       else if (entry.senderMode !== undefined) config.errors.push(`Channel ${channel} has an invalid senderMode`);
       if (typeof entry.instructions === 'string' && entry.instructions.trim().length <= maxInstructions) {

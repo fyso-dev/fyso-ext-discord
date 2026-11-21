@@ -51,9 +51,9 @@ function editLocked(file, edit) {
   }
 }
 
-function editChannel(file, channel, bot, {expected, previousMentionRequired, mentionRequired, senderMode, previousSenderMode, instructions} = {}) {
+function editChannel(file, channel, bot, {expected, expectedPresent, previousMentionRequired, mentionRequired, senderMode, previousSenderMode, instructions} = {}) {
   if (!validChannel(channel)) throw Error('Channel must be a 17–20 digit Discord ID');
-  if (bot !== null && !validId(bot)) throw Error('A valid OpenMausBot ID is required');
+  if (bot !== null && bot !== '' && !validId(bot)) throw Error('A valid OpenMausBot ID is required');
   return editConfig(file, (doc, yaml) => {
     if (!doc.has('channels')) doc.set('channels', doc.createNode([]));
     const channels = doc.get('channels', true);
@@ -63,7 +63,7 @@ function editChannel(file, channel, bot, {expected, previousMentionRequired, men
     const currentMentionRequired = existing?.get('mentionRequired') !== false;
     const changedTrigger = previousMentionRequired !== undefined && previousMentionRequired !== currentMentionRequired;
     const changedSender = previousSenderMode !== undefined && (existing?.get('senderMode') ?? 'webhook') !== previousSenderMode;
-    if (changedBot || changedTrigger || changedSender) {
+    if ((expectedPresent !== undefined && Boolean(existing) !== expectedPresent) || changedBot || changedTrigger || changedSender) {
       throw Object.assign(Error('Discord assignment changed; reload and retry'), {code: 'assignment_changed'});
     }
     if (bot === null) {
@@ -71,7 +71,8 @@ function editChannel(file, channel, bot, {expected, previousMentionRequired, men
       channels.delete(channels.items.indexOf(existing));
     } else {
       const entry = existing ?? doc.createNode({channel, bot});
-      entry.set('bot', bot);
+      if (bot) entry.set('bot', bot);
+      else entry.delete('bot');
       if (mentionRequired === false) entry.set('mentionRequired', false);
       else if (mentionRequired === true && entry.has('mentionRequired')) entry.set('mentionRequired', true);
       if (senderMode === 'card' || (senderMode === 'webhook' && entry.has('senderMode'))) entry.set('senderMode', senderMode);
@@ -117,11 +118,11 @@ async function main([command, ...args]) {
 
   const {channels, errors} = loadConfig(file);
   await botAccount(token).catch(error => errors.push(error.message));
-  if (channels.size) {
+  if ([...channels.values()].some(Boolean)) {
     try {
       const bots = await listBots({port: process.env.FYSO_OMB_PORT});
       for (const [channel, bot] of channels) {
-        if (!bots.has(bot)) errors.push('Channel ' + channel + ' references an unknown project agent');
+        if (bot && !bots.has(bot)) errors.push('Channel ' + channel + ' references an unknown project agent');
       }
     } catch (error) {
       errors.push(error.message);

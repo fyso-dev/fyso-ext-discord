@@ -3,9 +3,6 @@ processes:
   ext-discord:
     command: framework/scripts/run-ext.sh discord -- bash -c 'bash extensions/discord/install.sh && exec bash extensions/discord/runtime.sh bridge.cjs'
     log_location: .data/logs/ext-discord.log
-    depends_on:
-      omb:
-        condition: process_healthy
     availability:
       restart: on_failure
       backoff_seconds: 10

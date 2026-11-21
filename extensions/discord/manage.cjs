@@ -12,7 +12,7 @@ async function manage(input, {api, roster, file, gateway}) {
   const config = loadConfig(file);
   if (input.op !== 'status') {
     if (!['set', 'remove'].includes(input.op) || !validChannel(input.channel) ||
-        (input.op === 'set' && !validId(input.bot))) return {error: 'invalid_input'};
+        (input.op === 'set' && input.bot !== '' && !validId(input.bot))) return {error: 'invalid_input'};
     if ((input.mentionRequired !== undefined && typeof input.mentionRequired !== 'boolean') ||
         (input.previousMentionRequired !== undefined && typeof input.previousMentionRequired !== 'boolean')) {
       return {error: 'invalid_input'};
@@ -28,12 +28,19 @@ async function manage(input, {api, roster, file, gateway}) {
       return {error: 'assignment_changed'};
     }
     if (input.op === 'set') {
-      const [bots, channel] = await Promise.all([roster(), api('/channels/' + input.channel)]);
-      if (!bots.some(bot => bot.id === input.bot)) return {error: 'unknown_agent'};
+      const channel = await api('/channels/' + input.channel);
+      if (input.bot && !(await roster()).some(bot => bot.id === input.bot)) return {error: 'unknown_agent'};
       if (!channelTypes.has(channel.type)) return {error: 'unsupported_channel'};
+      const account = await api('/users/@me');
+      const [member, roles] = await Promise.all([
+        api('/guilds/' + channel.guild_id + '/members/' + account.id),
+        api('/guilds/' + channel.guild_id + '/roles'),
+      ]);
+      const required = input.bot ? undefined : {view: 1024n, send: 2048n};
+      if (channelPermissions(channel, member, roles, account.id, required).length) return {error: 'missing_access'};
     }
     editChannel(file, input.channel, input.op === 'remove' ? null : input.bot, {
-      expected: current, previousMentionRequired, mentionRequired: input.mentionRequired,
+      expected: current, expectedPresent: input.previousPresent, previousMentionRequired, mentionRequired: input.mentionRequired,
       senderMode: input.senderMode, previousSenderMode: input.previousSenderMode, instructions: input.instructions,
     });
     return {saved: true};
@@ -44,7 +51,7 @@ async function manage(input, {api, roster, file, gateway}) {
     instructions: config.instructions.get(channel) ?? '',
   }));
   const account = await api('/users/@me');
-  const [bots, guilds] = await Promise.all([roster(), api('/users/@me/guilds?limit=200')]);
+  const [bots, guilds] = await Promise.all([roster().catch(() => []), api('/users/@me/guilds?limit=200')]);
   const results = await Promise.allSettled(guilds.map(async guild => {
     const [channels, member, roles] = await Promise.all([
       api('/guilds/' + guild.id + '/channels'),
