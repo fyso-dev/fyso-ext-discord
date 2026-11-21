@@ -9,7 +9,7 @@ RUNTIME_FILES = {
     "lib/split.cjs", "lib/store.cjs", "package.json", "package-lock.json",
     "process.yaml", "runtime.sh", "secrets.yaml", "setup.yaml", "tools.cjs",
     "lib/attachments.cjs", "lib/avatar-cache.cjs", "lib/mascot-renderer.cjs", "lib/deferred-reply.cjs", "lib/identity.cjs", "lib/sender.cjs", "lib/discord.cjs", "lib/gateway-state.cjs", "manage.cjs", "panel-action.sh",
-    "pages/manage.yaml", "panel/index.html", "panel/manage.css", "panel/manage.js",
+    "pages/manage.yaml", "panel/index.html", "panel/icon.png", "panel/manage.css", "panel/manage.js",
     "panel/locales/en.json", "panel/locales/es.json", "skills/discord/SKILL.md",
 }
 
