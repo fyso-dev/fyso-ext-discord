@@ -84,6 +84,16 @@ function editChannel(file, channel, bot, {expected, previousMentionRequired, men
   });
 }
 
+async function sendMessage(file, channel, content, api) {
+  if (!validChannel(channel)) throw Error('Channel must be a 17–20 digit Discord ID');
+  const {channels, errors} = loadConfig(file);
+  if (errors.length || !channels.has(channel)) throw Error('A configured Discord channel is required');
+  if (!content.trim() || content.length > 2000) throw Error('Send between 1 and 2000 characters');
+  const result = await api('/channels/' + channel + '/messages', {content, allowed_mentions: {parse: []}});
+  if (!validChannel(result?.id)) throw Error('Discord did not confirm the message ID');
+  return result.id;
+}
+
 async function main([command, ...args]) {
   const file = configPath();
   if (command === 'add' && args.length === 2) {
@@ -93,12 +103,17 @@ async function main([command, ...args]) {
   }
 
   const token = process.env.DISCORD_BOT_TOKEN;
+  if (command === 'send') {
+    if (args.length !== 2) throw Error('Usage: discord:send <channel-id> <message>');
+    console.log('Discord message sent: ' + await sendMessage(file, ...args, discordApi(token)));
+    return;
+  }
   if (command === 'invite' && !args.length) {
     const id = await botAccount(token);
     console.log(inviteUrl(id));
     return;
   }
-  if (command !== 'check' || args.length) throw Error('Usage: tools.cjs check | invite | add <channel-id> <bot-id>');
+  if (command !== 'check' || args.length) throw Error('Usage: tools.cjs check | invite | send <channel-id> <message> | add <channel-id> <bot-id>');
 
   const {channels, errors} = loadConfig(file);
   await botAccount(token).catch(error => errors.push(error.message));
@@ -128,4 +143,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = {addChannel: editChannel, editChannel, configPath, permissions};
+module.exports = {sendMessage, addChannel: editChannel, editChannel, configPath, permissions};
