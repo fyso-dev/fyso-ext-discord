@@ -118,3 +118,64 @@ test('does not reupload an unchanged webhook avatar after a bridge restart', asy
   await replySender(client, undefined, directory)(f.channel, 'Three', {identity: changed, mode: 'webhook'});
   assert.equal(edits, 1);
 });
+
+const report = {attachment: Buffer.from('report'), name: 'report.md'};
+
+test('passes outgoing files on the webhook, card and plain paths', async () => {
+  const hook = fixture([PermissionFlagsBits.ManageWebhooks]);
+  await hook.send(hook.channel, 'reply', {identity, mode: 'webhook', files: [report]});
+  assert.deepEqual(hook.calls[1][1].files, [report]);
+  const card = fixture([PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AttachFiles]);
+  await card.send(card.channel, 'reply', {identity, files: [report]});
+  assert.deepEqual(card.calls[0][1].files, [{attachment: avatar.bytes, name: avatar.filename}, report]);
+  const plain = fixture([PermissionFlagsBits.AttachFiles]);
+  await plain.send(plain.channel, 'reply', {identity, files: [report]});
+  assert.deepEqual(plain.calls[0][1].files, [report]);
+  await plain.send(plain.channel, 'reply', {files: [report]});
+  assert.deepEqual(plain.calls[1][1].files, [report]);
+});
+
+test('drops files without Attach Files permission and reports it', async () => {
+  const f = fixture([]);
+  let dropped = 0;
+  await f.send(f.channel, 'reply', {files: [report], onDropped: () => dropped++});
+  assert.equal(f.calls[0][1].files, undefined);
+  assert.equal(dropped, 1);
+});
+
+test('retries without the outgoing files when Discord says the upload is too large', async () => {
+  const f = fixture([PermissionFlagsBits.ManageWebhooks]);
+  const hook = (await f.channel.parent.createWebhook({}));
+  let attempts = 0;
+  hook.send = async options => {
+    f.calls.push(['webhook', options]);
+    if (!attempts++) throw Object.assign(Error('too large'), {code: 40005});
+  };
+  let dropped = 0;
+  await f.send(f.channel, 'reply', {identity, mode: 'webhook', files: [report], onDropped: () => dropped++});
+  const sent = f.calls.filter(([name]) => name === 'webhook');
+  assert.deepEqual(sent[0][1].files, [report]);
+  assert.equal(sent[1][1].files, undefined);
+  assert.equal(dropped, 1);
+  const card = fixture([PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AttachFiles]);
+  let tries = 0;
+  card.channel.send = async options => {
+    card.calls.push(['bot', options]);
+    if (!tries++) throw Object.assign(Error('too large'), {status: 413});
+  };
+  await card.send(card.channel, 'reply', {identity, files: [report]});
+  assert.deepEqual(card.calls[1][1].files, [{attachment: avatar.bytes, name: avatar.filename}]);
+});
+
+test('reports dropped files once and does not resend them after a failed progress retry', async () => {
+  const f = fixture([PermissionFlagsBits.AttachFiles]);
+  let edits = 0;
+  const progress = {id: 'p', hook: {editMessage: async () => {
+    if (!edits++) throw Object.assign(Error('too large'), {code: 40005});
+    throw Object.assign(Error('gone'), {code: 10008});
+  }}};
+  let dropped = 0;
+  await f.send(f.channel, 'reply', {progress, files: [report], onDropped: () => dropped++});
+  assert.equal(dropped, 1);
+  assert.equal(f.calls[0][1].files, undefined);
+});

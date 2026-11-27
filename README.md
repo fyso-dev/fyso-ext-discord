@@ -56,6 +56,15 @@ Agent identity                  Card
                                 └──────────────────────────┘
 ```
 
+To send a file, the agent writes it in its workspace and links it in the reply
+with Markdown (`[report.md](reports/report.md)` or `![chart](chart.png)`). The
+bridge downloads each linked file through OpenMausBot, which enforces workspace
+confinement and its own size cap, and attaches it to the last message of the
+reply: up to 10 files, 10 MB each and 25 MB in total. Folders are never sent.
+Files that cannot be attached (limits, a missing Attach Files permission in
+card mode, an unreadable path) are skipped and the bridge says so in a short
+follow-up message; the text always arrives.
+
 Choose "when mentioned" for shared channels and "every new message" for a channel
 dedicated to the agent. Replies inside a thread keep its conversation.
 

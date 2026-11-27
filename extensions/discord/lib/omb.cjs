@@ -45,7 +45,15 @@ async function runAgent({botId, taskId, text, port, bin = 'openmausbot'}) {
   const result = {exitCode};
   if (validId(value?.threadId)) result.threadId = value.threadId;
   if (Number.isSafeInteger(value?.since) && value.since > 0) result.since = value.since;
-  if (typeof value?.reply?.text === 'string') result.reply = {text: value.reply.text};
+  if (typeof value?.reply?.text === 'string') {
+    result.reply = {text: value.reply.text};
+    // The final reply is the last non-blank bot text message, as OpenMausBot picks it.
+    const final = Array.isArray(value.messages) && value.messages.findLast(message => message?.role === 'bot' &&
+      message.kind === 'text' && typeof message.text === 'string' && message.text.trim());
+    if (/^[A-Za-z0-9_-]{1,128}$/.test(final?.id)) result.reply.id = final.id;
+    result.reply.files = Array.isArray(value.reply.files)
+      ? value.reply.files.filter(file => typeof file === 'string' && file.length <= 1024).slice(0, 10) : [];
+  }
   return result;
 }
 
