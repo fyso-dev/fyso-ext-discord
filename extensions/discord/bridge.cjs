@@ -15,9 +15,13 @@ const {deferredReply} = require('./lib/deferred-reply.cjs');
 const {gatewayFile, writeGateway} = require('./lib/gateway-state.cjs');
 
 async function main() {
+  const token = process.env.DISCORD_BOT_TOKEN?.trim();
+  if (!token) {
+    // Installed but not configured: exit 0 so process-compose (restart: on_failure) does not retry.
+    console.log('Discord not configured: DISCORD_BOT_TOKEN is not set; bridge not started');
+    return;
+  }
   const port = projectPort(process.env.FYSO_OMB_PORT);
-  const token = process.env.DISCORD_BOT_TOKEN;
-  if (!token) throw Error('DISCORD_BOT_TOKEN is missing');
 
   const root = process.env.FYSO_ROOT || process.cwd();
   const healthFile = gatewayFile(root);
