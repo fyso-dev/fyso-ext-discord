@@ -33,3 +33,10 @@ Several people can write in the same thread. Address them by name when it helps.
 
 - Do not mention `@everyone`, `@here`, roles or people: mentions are disabled anyway.
 - Do not paste secrets, tokens or personal data; the channel may have many readers.
+
+# Attaching files
+
+To send a file with your Discord reply, write it inside your workspace and link
+it in the reply with Markdown: `[name.md](path/name.md)`; images too
+(`![chart](path/chart.png)`). Up to 10 files, 10 MB each. Don't paste a long
+document inline when a file fits better.

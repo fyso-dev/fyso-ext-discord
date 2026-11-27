@@ -11,6 +11,7 @@ const {identityFor} = require('./lib/identity.cjs');
 const {avatarCache} = require('./lib/avatar-cache.cjs');
 const {replySender} = require('./lib/sender.cjs');
 const {uploadAttachments, attachmentTurn, withInstructions} = require('./lib/attachments.cjs');
+const {linkedFiles, fetchReplyFiles} = require('./lib/reply-files.cjs');
 const {deferredReply} = require('./lib/deferred-reply.cjs');
 const {gatewayFile, writeGateway} = require('./lib/gateway-state.cjs');
 
@@ -46,7 +47,9 @@ async function main() {
     const chunks = splitMessage(text, options?.identity ? 1910 : 2000);
     for (const [index, content] of chunks.entries()) {
       const progress = index === 0 ? options?.progress : undefined;
-      await sendChunk(channel, content, {...options, progress});
+      // Files travel with the last chunk only.
+      const files = index === chunks.length - 1 ? options?.files : undefined;
+      await sendChunk(channel, content, {...options, progress, files});
     }
   };
   reload();
@@ -73,11 +76,20 @@ async function main() {
     const bot = reply && (await botRoster({port})).find(bot => bot.id === entry.botId);
     const identity = reply ? await agentIdentity(bot) : undefined;
     const chunks = splitMessage(reply?.text ?? statusText('failed', config.language), identity ? 1910 : 2000);
-    for (let index = pending.sent ?? 0; index < chunks.length; index++) {
+    const first = pending.sent ?? 0;
+    let files = [];
+    let rejected = 0;
+    if (reply && first < chunks.length) {
+      const links = linkedFiles(reply.text);
+      if (links.length) ({files, rejected} = await fetchReplyFiles({port, threadId: entry.taskId, messageId: reply.id, links}));
+    }
+    for (let index = first; index < chunks.length; index++) {
       await sendChunk(channel, chunks[index], {identity, mode: config.senderModes.get(entry.channelId) ?? 'webhook',
-        nonce: pending.sourceId + ':' + index.toString(36)});
+        nonce: pending.sourceId + ':' + index.toString(36),
+        ...(index === chunks.length - 1 ? {files, onDropped: () => rejected++} : {})});
       threads.set(threadId, {...entry, pending: {...pending, sent: index + 1}});
     }
+    if (rejected) await send(channel, statusText('replyAttachmentRejected', config.language));
     threads.set(threadId, {...entry, pending: undefined, state: 'idle'});
     return true;
   }
@@ -172,9 +184,17 @@ async function main() {
       console.error('OpenMausBot did not return a conversation ID');
     }
     if (reply.kind === 'failed') console.error('OpenMausBot Discord turn failed');
+    let outgoing = [];
+    let rejected = 0;
+    if (reply.text && result.reply?.files?.length) {
+      ({files: outgoing, rejected} = await fetchReplyFiles({
+        port, threadId: result.threadId, messageId: result.reply.id, links: result.reply.files,
+      }));
+    }
     await send(channel, reply.text ?? statusText(reply.kind, language), {
-      identity: reply.text ? identity : undefined, mode, progress,
+      identity: reply.text ? identity : undefined, mode, progress, files: outgoing, onDropped: () => rejected++,
     });
+    if (rejected) await send(channel, statusText('replyAttachmentRejected', language));
   }
 
   client.once(Events.ClientReady, () => {

@@ -60,25 +60,55 @@ function replySender(client, log = console.error, avatarDirectory) {
     return init;
   }
 
-  async function send(channel, content, {identity, mode, nonce, progress} = {}) {
+  // onDropped() runs when outgoing files could not be delivered with the text.
+  async function send(channel, content, {identity, mode, nonce, progress, files = [], onDropped: notify} = {}) {
+    let reported = false;
+    const onDropped = () => { if (!reported) { reported = true; notify?.(); } };
     const allowedMentions = {parse: []};
-    if (progress) {
-      try { return await progress.hook.editMessage(progress.id, {content, threadId: channel.id, allowedMentions}); }
+    const withFiles = list => list.length ? {files: list} : {};
+    // Discord rejects an oversized upload with 40005 or 413; the text must still arrive.
+    const deliver = async (post, list = files) => {
+      try { return await post(list); }
       catch (error) {
+        if (!list.length || !(error.code === 40005 || error.status === 413)) throw error;
+        onDropped();
+        files = [];
+        return post([]);
+      }
+    };
+    if (progress) {
+      try {
+        return await deliver(list => progress.hook.editMessage(progress.id,
+          {content, threadId: channel.id, allowedMentions, ...withFiles(list)}));
+      } catch (error) {
         if (!rejected.has(error.code) && error.code !== 10008) throw error;
       }
     }
     const opts = {...(nonce ? {nonce, enforceNonce: true} : {}), allowedMentions};
-    if (!identity) return channel.send({...opts, content});
-    const member = channel.guild.members.me;
+    const member = channel.guild?.members?.me;
+    const permissions = member && channel.permissionsFor(member);
+    // Webhook uploads are not limited by the bot's channel permissions; the other paths are.
+    let plainFiles;
+    const botFiles = () => {
+      if (plainFiles) return plainFiles;
+      plainFiles = files;
+      if (files.length && !permissions?.has(PermissionFlagsBits.AttachFiles)) {
+        plainFiles = [];
+        onDropped();
+      }
+      return plainFiles;
+    };
+    const plain = (extra, list) => channel.send({...opts, ...extra, ...withFiles(list)});
+    const deliverPlain = post => botFiles().length ? deliver(post, botFiles()) : post([]);
+    if (!identity) return deliverPlain(list => plain({content}, list));
     if (mode === 'webhook' && member && channel.parent?.permissionsFor(member)?.has(PermissionFlagsBits.ManageWebhooks)) {
       let hook;
       try { hook = await webhook(channel.parent, identity); }
       catch { log('Discord identity webhook could not be initialized'); }
       if (hook) {
         try {
-          return await hook.send({threadId: channel.id, username: identity.name,
-            allowedMentions, content});
+          return await deliver(list => hook.send({threadId: channel.id, username: identity.name,
+            allowedMentions, content, ...withFiles(list)}));
         } catch (error) {
           if (!rejected.has(error.code)) throw error;
           if (error.code === 10015) hooks.delete(channel.parentId + ':' + identity.id);
@@ -86,21 +116,24 @@ function replySender(client, log = console.error, avatarDirectory) {
         }
       }
     }
-    if (member && channel.permissionsFor(member)?.has(PermissionFlagsBits.EmbedLinks)) {
+    if (member && permissions?.has(PermissionFlagsBits.EmbedLinks)) {
       try {
-        const avatar = channel.permissionsFor(member)?.has(PermissionFlagsBits.AttachFiles)
-          ? identity.avatar : undefined;
-        return await channel.send({...opts, embeds: [{
-          author: {name: identity.name}, color: identity.color, description: content,
-          ...(avatar ? {thumbnail: {url: 'attachment://' + avatar.filename}} : {}),
-        }], ...(avatar ? {files: [{attachment: avatar.bytes, name: avatar.filename}]} : {})});
+        const avatar = permissions.has(PermissionFlagsBits.AttachFiles) ? identity.avatar : undefined;
+        const card = list => {
+          const all = [...(avatar ? [{attachment: avatar.bytes, name: avatar.filename}] : []), ...list];
+          return channel.send({...opts, embeds: [{
+            author: {name: identity.name}, color: identity.color, description: content,
+            ...(avatar ? {thumbnail: {url: 'attachment://' + avatar.filename}} : {}),
+          }], ...withFiles(all)});
+        };
+        return await deliverPlain(card);
       } catch (error) {
         if (!rejected.has(error.code)) throw error;
       }
     }
     // Thread names and agent names are trusted configuration and cannot trigger mentions.
     const label = '**' + identity.name.replace(/[\\*`_|~<>]/g, '') + '**\n';
-    return channel.send({...opts, content: label.length + content.length <= 2000 ? label + content : content});
+    return deliverPlain(list => plain({content: label.length + content.length <= 2000 ? label + content : content}, list));
   };
 
   send.begin = async (channel, identity, content) => {
