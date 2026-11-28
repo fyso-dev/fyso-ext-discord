@@ -95,6 +95,9 @@ async function sendMessage(file, channel, content, api) {
   return result.id;
 }
 
+// Neutralise CR/LF and other control characters so untrusted text cannot forge log lines.
+const logSafe = value => String(value ?? '').replace(/[\x00-\x1f\x7f-\x9f]/g, ' ').slice(0, 500);
+
 async function main([command, ...args]) {
   const file = configPath();
   if (command === 'add' && args.length === 2) {
@@ -118,10 +121,10 @@ async function main([command, ...args]) {
 
   const result = await checkSetup(file, token);
   if (result.errors.length) {
-    result.errors.forEach(error => console.error(error));
+    result.errors.forEach(error => console.error(logSafe(error)));
     process.exitCode = 1;
   } else {
-    console.log(result.message);
+    console.log(logSafe(result.message));
   }
 }
 
@@ -141,7 +144,7 @@ async function checkSetup(file, token, {fetcher, bots = listBots} = {}) {
     try {
       const known = await bots({port: process.env.FYSO_OMB_PORT});
       for (const [channel, bot] of channels) {
-        if (bot && !known.has(bot)) errors.push('Channel ' + channel + ' references an unknown project agent');
+        if (bot && !known.has(bot)) errors.push('Channel ' + logSafe(channel) + ' references an unknown project agent');
       }
     } catch (error) {
       errors.push(error.message);
@@ -153,9 +156,9 @@ async function checkSetup(file, token, {fetcher, bots = listBots} = {}) {
 
 if (require.main === module) {
   main(process.argv.slice(2)).catch(error => {
-    console.error(error.message);
+    console.error(logSafe(error.message));
     process.exitCode = 1;
   });
 }
 
-module.exports = {checkSetup, sendMessage, addChannel: editChannel, editChannel, configPath, permissions};
+module.exports = {checkSetup, logSafe, sendMessage, addChannel: editChannel, editChannel, configPath, permissions};

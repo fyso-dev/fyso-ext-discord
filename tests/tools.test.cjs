@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const {spawnSync} = require('node:child_process');
-const {addChannel, checkSetup, permissions} = require('../extensions/discord/tools.cjs');
+const {addChannel, checkSetup, logSafe, permissions} = require('../extensions/discord/tools.cjs');
 const {loadConfig} = require('../extensions/discord/lib/config.cjs');
 const tools = path.resolve(__dirname, '../extensions/discord/tools.cjs');
 
@@ -77,4 +77,10 @@ test('doctor fails with guidance when Discord rejects the token', async t => {
   assert.match(down.errors[0], /Could not reach the Discord API/);
   const ok = await checkSetup(file, 'token', {fetcher: async () => ({ok: true, json: async () => ({bot: true, id: '123456789012345678'})})});
   assert.deepEqual(ok.errors, []);
+});
+
+test('logSafe strips control characters and bounds length', () => {
+  assert.equal(logSafe('a\r\nforged\tline\x1b[0m'), 'a  forged line [0m');
+  assert.equal(logSafe('x'.repeat(900)).length, 500);
+  assert.equal(logSafe(undefined), '');
 });
