@@ -10,6 +10,13 @@ console.log(JSON.stringify({
   threadId: 'task-id',
   state: process.env.FAKE_OMB_STATE,
   job: {state: process.env.FAKE_OMB_JOB},
-  reply: {text: JSON.stringify({argv: process.argv.slice(2), text})},
+  reply: {text: JSON.stringify({argv: process.argv.slice(2), text}),
+    files: process.env.FAKE_OMB_FILES ? JSON.parse(process.env.FAKE_OMB_FILES) : undefined},
+  messages: [
+    {id: 'm1', role: 'user', kind: 'text', text, at: 1},
+    {id: 'm2', role: 'bot', kind: 'text', text: 'working', at: 2},
+    {id: 'm3', role: 'bot', kind: 'text', text: 'final', at: 3},
+    {id: 'm4', role: 'bot', kind: 'text', text: '  ', at: 4},
+  ],
 }));
 process.exitCode = Number(process.env.FAKE_OMB_EXIT ?? 0);

@@ -106,4 +106,4 @@ function withInstructions(text, instructions) {
   return instructions ? '[Discord channel instructions]\n' + plain(instructions) + '\n\n' + text : text;
 }
 
-module.exports = {uploadAttachments, attachmentTurn, withInstructions};
+module.exports = {readBytes, uploadAttachments, attachmentTurn, withInstructions};

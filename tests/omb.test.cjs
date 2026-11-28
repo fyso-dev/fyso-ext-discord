@@ -61,3 +61,13 @@ test('only clears a failed wait when the native job has settled', async t => {
   process.env.FAKE_OMB_JOB = 'completed';
   assert.equal(await isIdle({...request, taskId: 'task-id'}), true);
 });
+
+test('returns the final reply id and its linked files', async t => {
+  t.after(() => { delete process.env.FAKE_OMB_FILES; });
+  assert.deepEqual((await runAgent(request)).reply.files, []);
+  assert.equal((await runAgent(request)).reply.id, 'm3');
+  process.env.FAKE_OMB_FILES = JSON.stringify(['a.md', 5, 'x'.repeat(1025), ...Array(12).fill('b.md')]);
+  const {reply} = await runAgent(request);
+  assert.equal(reply.files.length, 10);
+  assert.deepEqual(reply.files.slice(0, 2), ['a.md', 'b.md']);
+});
