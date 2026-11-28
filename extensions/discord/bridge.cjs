@@ -15,6 +15,8 @@ const {linkedFiles, fetchReplyFiles} = require('./lib/reply-files.cjs');
 const {deferredReply} = require('./lib/deferred-reply.cjs');
 const {gatewayFile, writeGateway} = require('./lib/gateway-state.cjs');
 
+const INVALID_TOKEN_RETRY_MS = 5 * 60_000;
+
 async function main() {
   const token = process.env.DISCORD_BOT_TOKEN?.trim();
   if (!token) {
@@ -230,7 +232,20 @@ async function main() {
   });
   client.on(Events.Error, () => console.error('Discord client error'));
   client.on(Events.ShardError, () => console.error('Discord gateway error'));
+  // The token comes from the environment at process start, so only a restart can pick up a fixed one.
+  // Wait before exiting so the supervisor does not hammer Discord with a rejected token.
+  let tokenRejection;
+  const rejectToken = () => tokenRejection ??= (async () => {
+    health('invalid_token');
+    console.error('Discord rejected the bot token (TokenInvalid); update DISCORD_BOT_TOKEN \u2014 retrying in 5 minutes');
+    await new Promise(resolve => setTimeout(resolve, INVALID_TOKEN_RETRY_MS));
+    process.exit(1);
+  })();
   client.on(Events.ShardDisconnect, ({code}) => {
+    if (code === 4004) {
+      void rejectToken();
+      return;
+    }
     if (code === 4014) {
       health('intent_disabled');
       console.error('Enable the Message Content intent in the Discord Developer Portal');
@@ -240,7 +255,7 @@ async function main() {
   });
   const stop = async () => {
     clearInterval(heartbeat);
-    health('offline');
+    if (!tokenRejection) health('offline');
     fs.unwatchFile(configFile);
     await client.destroy();
     process.exit(0);
@@ -252,7 +267,16 @@ async function main() {
       health('intent_disabled');
       throw Error('Enable the Message Content intent in the Discord Developer Portal');
     }
-    throw Error('Discord gateway login failed');
+    // discord.js reports a rejected token as code TokenInvalid (REST 401 while fetching gateway info);
+    // a gateway close 4004 surfaces as a plain Error('Authentication failed') from @discordjs/ws.
+    const reason = typeof error?.code === 'string' ? error.code : error?.name || 'Error';
+    const rejected = error?.code === 'TokenInvalid' || error?.code === 4004 || error?.status === 401
+      || error?.message === 'Authentication failed';
+    if (rejected) {
+      console.error(`Discord gateway login failed: ${reason}`);
+      return rejectToken();
+    }
+    throw Error(`Discord gateway login failed: ${reason}`);
   });
 }
 
