@@ -7,8 +7,8 @@ const {discordApi, inviteUrl, permissions} = require('./lib/discord.cjs');
 const {randomUUID} = require('node:crypto');
 const configPath = () => path.join(process.env.FYSO_ROOT || process.cwd(), 'project', 'discord.yaml');
 
-async function botAccount(token) {
-  const account = await discordApi(token)('/users/@me');
+async function botAccount(token, fetcher) {
+  const account = await discordApi(token, fetcher)('/users/@me');
   if (!account?.bot || !validChannel(account.id)) throw Error('Discord did not return a bot account');
   return account.id;
 }
@@ -95,6 +95,9 @@ async function sendMessage(file, channel, content, api) {
   return result.id;
 }
 
+// Neutralise CR/LF and other control characters so untrusted text cannot forge log lines.
+const logSafe = value => String(value ?? '').replace(/[\x00-\x1f\x7f-\x9f]/g, ' ').slice(0, 500);
+
 async function main([command, ...args]) {
   const file = configPath();
   if (command === 'add' && args.length === 2) {
@@ -116,32 +119,46 @@ async function main([command, ...args]) {
   }
   if (command !== 'check' || args.length) throw Error('Usage: tools.cjs check | invite | send <channel-id> <message> | add <channel-id> <bot-id>');
 
+  const result = await checkSetup(file, token);
+  if (result.errors.length) {
+    result.errors.forEach(error => console.error(logSafe(error)));
+    process.exitCode = 1;
+  } else {
+    console.log(logSafe(result.message));
+  }
+}
+
+// Doctor check. An absent token means Discord was installed but not configured: that is not a failure.
+async function checkSetup(file, token, {fetcher, bots = listBots} = {}) {
+  if (!token?.trim()) {
+    return {errors: [], message: 'Discord not configured: skipped (set DISCORD_BOT_TOKEN to enable it)'};
+  }
   const {channels, errors} = loadConfig(file);
-  await botAccount(token).catch(error => errors.push(error.message));
+  await botAccount(token, fetcher).catch(error => {
+    errors.push(['token_invalid', 'missing_access'].includes(error.code)
+      ? 'Discord rejected DISCORD_BOT_TOKEN (HTTP ' + (error.code === 'token_invalid' ? 401 : 403) + '). '
+        + 'Set a new token (Discord panel > Setup, or mise run secrets) or remove it to leave Discord unconfigured'
+      : error.message);
+  });
   if ([...channels.values()].some(Boolean)) {
     try {
-      const bots = await listBots({port: process.env.FYSO_OMB_PORT});
+      const known = await bots({port: process.env.FYSO_OMB_PORT});
       for (const [channel, bot] of channels) {
-        if (bot && !bots.has(bot)) errors.push('Channel ' + channel + ' references an unknown project agent');
+        if (bot && !known.has(bot)) errors.push('Channel ' + logSafe(channel) + ' references an unknown project agent');
       }
     } catch (error) {
       errors.push(error.message);
     }
   }
-
-  if (errors.length) {
-    errors.forEach(error => console.error(error));
-    process.exitCode = 1;
-  } else {
-    console.log(channels.size ? 'Discord token and channels verified' : 'Discord token verified; no channel enabled yet');
-  }
+  const message = channels.size ? 'Discord token and channels verified' : 'Discord token verified; no channel enabled yet';
+  return {errors, message};
 }
 
 if (require.main === module) {
   main(process.argv.slice(2)).catch(error => {
-    console.error(error.message);
+    console.error(logSafe(error.message));
     process.exitCode = 1;
   });
 }
 
-module.exports = {sendMessage, addChannel: editChannel, editChannel, configPath, permissions};
+module.exports = {checkSetup, logSafe, sendMessage, addChannel: editChannel, editChannel, configPath, permissions};
