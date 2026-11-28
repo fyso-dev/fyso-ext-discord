@@ -71,6 +71,7 @@
       "connecting": "Connecting",
       "offline": "Disconnected",
       "intent_disabled": "One step missing",
+      "invalid_token": "Token rejected",
       "token_missing": "No token"
     },
     "errors": {

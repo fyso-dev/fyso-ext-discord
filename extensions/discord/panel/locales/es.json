@@ -71,6 +71,7 @@
       "connecting": "Conectando",
       "offline": "Desconectado",
       "intent_disabled": "Falta un paso",
+      "invalid_token": "Token rechazado",
       "token_missing": "Sin token"
     },
     "errors": {

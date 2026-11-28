@@ -4,7 +4,7 @@ const path = require('node:path');
 function readGateway(file) {
   try {
     const {state, at} = JSON.parse(fs.readFileSync(file, 'utf8'));
-    if (state === 'intent_disabled') return state;
+    if (['intent_disabled', 'invalid_token'].includes(state)) return state;
     if (Date.now() - at < 45_000 && ['connected', 'connecting'].includes(state)) return state;
   } catch {}
   return 'offline';
